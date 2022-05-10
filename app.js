@@ -1,9 +1,12 @@
+require("dotenv").config();
 const express = require("express");
 const app = express();
 const ejs = require("ejs");
 const path = require('path');
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
+const encrypt = require("mongoose-encryption");
+
 
 // app-wide middleware
 app.use(express.static(path.join(__dirname, '/public')));
@@ -33,11 +36,13 @@ const userSchema = new mongoose.Schema({
     }
 })
 
+
+// Encrypt the db
+const secret = process.env.SECRET;
+userSchema.plugin(encrypt, {secret: secret, encryptedFields: ["password"], decryptPostSave: false});
+
 // User model
 const User = mongoose.model('User', userSchema);
-
-
-
 
 // view engine
 app.set("view engine", "ejs");
@@ -80,16 +85,13 @@ app.route('/login')
         const email = req.body.username;
         const password = req.body.password;
     
-        User.findOne({email: email, password: password}, (err, user) => {
-            if(err){
-                res.send(err.message);
-            }
-
+        User.findOne({email: email}, (err, user) => {
+            if(err) res.send(`An error occured: ${err.message}`);
+            
             if(user){
-                res.render("secrets");
-            }else{
-                res.send('Please enter valid login details');
-            }
+                if(user.password == password) res.render("secrets");
+                else res.send("Please enter a valid password");
+            }else res.send('Please enter valid login details');   
         })
     })
 
