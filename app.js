@@ -5,11 +5,10 @@ const ejs = require("ejs");
 const path = require('path');
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-const encrypt = require("mongoose-encryption");
-const md5 = require('md5');
+const bcrypt = require("bcrypt");
 
-
-
+// Encryption details
+const saltRounds = 10;
 
 // app-wide middleware
 app.use(express.static(path.join(__dirname, '/public')));
@@ -40,10 +39,6 @@ const userSchema = new mongoose.Schema({
 })
 
 
-// Encrypt the db. Upgraded to hashing instead.
-// const secret = process.env.SECRET;
-// userSchema.plugin(encrypt, {secret: secret, encryptedFields: ["password"], decryptPostSave: false});
-
 // User model
 const User = mongoose.model('User', userSchema);
 
@@ -63,21 +58,32 @@ app.route('/register')
     .post((req,res) => {
         // Get data and save
         const email = req.body.username;
-        const password = md5(req.body.password);
+        const password = req.body.password;
 
-        const newUser = new User({
-            email : email,
-            password :password
-        })
+       
 
-        User.create(newUser, (err) => {
+        bcrypt.hash(password, saltRounds, function(err, hash) {
+            // Store hash in your password DB.
+
             if(err){
-                res.send(`Oops an error occured: ${err.message}`)
-            }else{
-                res.render("secrets");
+                console.log(err.message);
+            }else {
+                const newUser = new User({
+                    email : email,
+                    password : hash
+                })
+    
+                User.create(newUser, (err) => {
+                    if(err){
+                        res.send(`Oops an error occured: ${err.message}`)
+                    }else{
+                        res.render("secrets");
+                    }
+                })
+            
             }
-        })
     })
+})
 
 app.route('/login')
      .get((req,res) => {
@@ -87,13 +93,20 @@ app.route('/login')
         //Authentication and show secrets.js.
         const email = req.body.username;
         const password = req.body.password;
+
+       
     
         User.findOne({email: email}, (err, user) => {
             if(err) res.send(`An error occured: ${err.message}`);
             
             if(user){
-                if(user.password == password) res.render("secrets");
-                else res.send("Please enter a valid password");
+                bcrypt.compare(password, user.password, function(err, result) {
+                    if(err) console.log(err.message)
+                    else{
+                        if(result) res.render("secrets");
+                        else res.send('Please enter the correct password')
+                    }
+                });  
             }else res.send('Please enter valid login details');   
         })
     })
@@ -129,4 +142,4 @@ app.route('/submit')
 
 
 const PORT =  3000;
-app.listen(PORT, () => console.log('Server is running on port ' + PORT));
+app.listen(PORT, () => console.log('Server is running on port ' + PORT))
