@@ -6,6 +6,9 @@ const path = require('path');
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const encrypt = require("mongoose-encryption");
+const md5 = require('md5');
+
+
 
 
 // app-wide middleware
@@ -37,9 +40,9 @@ const userSchema = new mongoose.Schema({
 })
 
 
-// Encrypt the db
-const secret = process.env.SECRET;
-userSchema.plugin(encrypt, {secret: secret, encryptedFields: ["password"], decryptPostSave: false});
+// Encrypt the db. Upgraded to hashing instead.
+// const secret = process.env.SECRET;
+// userSchema.plugin(encrypt, {secret: secret, encryptedFields: ["password"], decryptPostSave: false});
 
 // User model
 const User = mongoose.model('User', userSchema);
@@ -60,7 +63,7 @@ app.route('/register')
     .post((req,res) => {
         // Get data and save
         const email = req.body.username;
-        const password = req.body.password;
+        const password = md5(req.body.password);
 
         const newUser = new User({
             email : email,
