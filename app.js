@@ -1,51 +1,48 @@
 require("dotenv").config();
 const express = require("express");
-const app = express();
 const ejs = require("ejs");
 const path = require('path');
-const bodyParser = require("body-parser");
-const mongoose = require("mongoose");
+const db = require("./db");
+const session = require("express-session");
+const passport = require("./passport");
+const isAuth = require("./authMiddleware");
 const bcrypt = require("bcrypt");
+const MongoStore = require("connect-mongo");
+const bodyParser = require("body-parser");
 
-// Encryption details
-const saltRounds = 10;
+
+// create app
+const app = express();
+
+// connect to db
+db.connectToDB();
+
+// get user model
+const User = db.User;
 
 // app-wide middleware
 app.use(express.static(path.join(__dirname, '/public')));
 app.use(bodyParser.urlencoded({extended : true}));
+app.use(express.json());
 
-// connect to db
-async function connectToDB() {
-    try{
-        await mongoose.connect('mongodb://localhost:27017/secretsdb');
-    }catch(err){
-        console.log(`Error: ${err.message}`);
-    } 
-  }
+// create a session
+app.use(session({
+    secret : process.env.SESSION_KEY,
+    store : MongoStore.create({mongoUrl: "mongodb://localhost:27017/secretsdb"}),
+    resave : false,
+    saveUninitialized : true,
+    cookie: {maxAge: 10000 * 60 * 60 * 20}
+}))
 
-connectToDB();
+app.use(passport.initialize());
+app.use(passport.session());
 
-// User schema
-const userSchema = new mongoose.Schema({
-    email : {
-        type: String,
-        required: [1, 'Please supply email']
-    },
-
-    password : {
-        type : String,
-        required : [1, 'Please supply password']
-    }
-})
-
-
-// User model
-const User = mongoose.model('User', userSchema);
 
 // view engine
 app.set("view engine", "ejs");
 
 // Routes
+
 app.get('/', (req,res) => {
     res.render("home");
 })
@@ -56,68 +53,52 @@ app.route('/register')
     res.render("register");
 })
     .post((req,res) => {
-        // Get data and save
-        const email = req.body.username;
-        const password = req.body.password;
+        const saltRounds = 10;
 
-       
+        bcrypt.hash(req.body.password, saltRounds,function(err, hash){
 
-        bcrypt.hash(password, saltRounds, function(err, hash) {
-            // Store hash in your password DB.
+        if(err) console.log(err.message)
 
-            if(err){
-                console.log(err.message);
-            }else {
-                const newUser = new User({
-                    email : email,
-                    password : hash
-                })
-    
-                User.create(newUser, (err) => {
-                    if(err){
-                        res.send(`Oops an error occured: ${err.message}`)
-                    }else{
-                        res.render("secrets");
-                    }
-                })
-            
-            }
-    })
+        // payload 
+        const user = new User({
+            email : req.body.email,
+            password : hash
+        })
+
+        User.create(user, function(err){
+            if(err) return {err};
+            console.log('New user registered');
+            res.redirect("/login");
+        })
+        })
+        
 })
 
 app.route('/login')
      .get((req,res) => {
       res.render("login");
 })   
-    .post((req,res) => {
-        //Authentication and show secrets.js.
-        const email = req.body.username;
-        const password = req.body.password;
+    .post(passport.authenticate("local", {failureRedirect: "/loginFailure", successRedirect: "/secrets"}));
 
-       
-    
-        User.findOne({email: email}, (err, user) => {
-            if(err) res.send(`An error occured: ${err.message}`);
-            
-            if(user){
-                bcrypt.compare(password, user.password, function(err, result) {
-                    if(err) console.log(err.message)
-                    else{
-                        if(result) res.render("secrets");
-                        else res.send('Please enter the correct password')
-                    }
-                });  
-            }else res.send('Please enter valid login details');   
-        })
-    })
 
 app.route('/submit')
     .get((req,res) =>  {
     res.render("submit")
     })  
     .post((req,res) => {
-        const secret = req.body.secret;
+        
     })
+
+app.get('/secrets', isAuth, (req,res) => {
+    res.render("secrets");
+})
+
+app.get('/loginFailure', (req,res) => {
+    const failure = `<h1> Your login credentials is not correct,</h1>\
+    Try again <a href="/login">Login</a>`;
+
+    res.send(failure)
+})
 
 
 
