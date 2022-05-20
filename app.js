@@ -8,7 +8,13 @@ const passport = require("./passport");
 const isAuth = require("./authMiddleware");
 const bcrypt = require("bcrypt");
 const MongoStore = require("connect-mongo");
-const bodyParser = require("body-parser");
+
+
+// Test
+// const passport = require("passport");
+// const GoogleStrategy = require('passport-google-oauth20').Strategy;
+
+
 
 
 // create app
@@ -20,10 +26,12 @@ db.connectToDB();
 // get user model
 const User = db.User;
 
+
 // app-wide middleware
 app.use(express.static(path.join(__dirname, '/public')));
-app.use(bodyParser.urlencoded({extended : true}));
+app.use(express.urlencoded({extended : true}));
 app.use(express.json());
+
 
 // create a session
 app.use(session({
@@ -34,12 +42,19 @@ app.use(session({
     cookie: {maxAge: 10000 * 60 * 60 * 20}
 }))
 
+
+// Passport
 app.use(passport.initialize());
 app.use(passport.session());
 
 
+
+
 // view engine
 app.set("view engine", "ejs");
+
+
+
 
 // Routes
 
@@ -81,6 +96,19 @@ app.route('/login')
     .post(passport.authenticate("local", {failureRedirect: "/loginFailure", successRedirect: "/secrets"}));
 
 
+// this route sends credentials to google i.e google options in strategy.Google auths user
+app.get("/auth/google", passport.authenticate("google", {scope: "profile"}));
+
+
+/* This route uses the verify callback to locally auth user in our db(if user exists) or create user/store 
+more user data from scope requested from google.
+Seesions user by calling done(null, user) passing user to session middleware for serialization/deserialization.*/
+app.get("/auth/google/secrets", passport.authenticate('google', { failureRedirect: '/login' }),
+    function(req, res) {
+  // Successful authentication, redirect home.
+    res.redirect('/secrets');
+});
+
 app.route('/submit')
     .get((req,res) =>  {
     res.render("submit")
@@ -94,21 +122,20 @@ app.get('/secrets', isAuth, (req,res) => {
 })
 
 app.get('/loginFailure', (req,res) => {
-    const failure = `<h1> Your login credentials is not correct,</h1>\
+    const failure = `<h1> Your login credentials is not correct</h1>\
     Try again <a href="/login">Login</a>`;
 
     res.send(failure)
 })
 
+app.get("/logout", (req,res) => {
+    req.logOut();
 
+    const logout = `<h1> You are successfully logged out\
+    <a href="/login">Login</a>`;
 
-
-
-
-
-
-
-
+    res.send(logout);
+})
 
 
 

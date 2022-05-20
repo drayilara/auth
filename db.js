@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
+const findOrCreate = require("mongoose-findorcreate");
 
 // User schema
 const userSchema = new mongoose.Schema({
@@ -11,8 +11,14 @@ const userSchema = new mongoose.Schema({
     password : {
         type : String,
         required : [1, 'Please supply password']
-    }
+    },
+
+    googleId : String || Number
 })
+
+// Plug in the custom mongoose findOrCreate functionality
+
+userSchema.plugin(findOrCreate);
 
 
 // User model
