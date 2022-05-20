@@ -50,25 +50,25 @@ passport.use(localStrategy);
 
 
 // Authenticate with google.
-// const googleOptions = {
-//         clientID: process.env.GOOGLE_CLIENT_ID,
-//         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-//         callbackURL: "https://localhost:3000/auth/google/secrets",
-//         userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
-// }
+const googleOptions = {
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        callbackURL: "https://localhost:3000/auth/google/secrets",
+        userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
+}
 
-// const localGoogleUserVerifyCallback = (accessToken, refreshToken, profile, done) => {
-//         console.log(profile,accessToken, refreshToken);
-//         User.findOrCreate({ googleId: profile.id }, function (err, user) {
-//                 // The done() pass the user over to the session middleware
-//                 return done(err, user);
-//               });
-// }
+const localGoogleUserVerifyCallback = (accessToken, refreshToken, profile, done) => {
+        console.log(profile,accessToken, refreshToken);
+        User.findOrCreate({ googleId: profile.id }, function (err, user) {
+                // The done() pass the user over to the session middleware
+                return done(err, user);
+              });
+}
 
 
-// const googleStrategy = new GoogleStrategy(googleOptions, localGoogleUserVerifyCallback);
+const googleStrategy = new GoogleStrategy(googleOptions, localGoogleUserVerifyCallback);
 
-// passport.use(googleStrategy);
+passport.use(googleStrategy);
 
 
 /*-------------------- MANTAIN SESSION AND SET COOKIES ----------------- */
