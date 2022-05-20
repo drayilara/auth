@@ -3,17 +3,11 @@ const findOrCreate = require("mongoose-findorcreate");
 
 // User schema
 const userSchema = new mongoose.Schema({
-    email : {
-        type: String,
-        required: [1, 'Please supply email']
-    },
+    email : String,
 
-    password : {
-        type : String,
-        required : [1, 'Please supply password']
-    },
+    password : String,
 
-    googleId : String || Number
+    googleId : String
 })
 
 // Plug in the custom mongoose findOrCreate functionality

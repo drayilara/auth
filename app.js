@@ -10,13 +10,6 @@ const bcrypt = require("bcrypt");
 const MongoStore = require("connect-mongo");
 
 
-// Test
-// const passport = require("passport");
-// const GoogleStrategy = require('passport-google-oauth20').Strategy;
-
-
-
-
 // create app
 const app = express();
 
@@ -96,18 +89,14 @@ app.route('/login')
     .post(passport.authenticate("local", {failureRedirect: "/loginFailure", successRedirect: "/secrets"}));
 
 
-// this route sends credentials to google i.e google options in strategy.Google auths user
+// this route sends credentials to google i.e googleOptions in strategy.Google auths user.
 app.get("/auth/google", passport.authenticate("google", {scope: "profile"}));
 
 
 /* This route uses the verify callback to locally auth user in our db(if user exists) or create user/store 
 more user data from scope requested from google.
-Seesions user by calling done(null, user) passing user to session middleware for serialization/deserialization.*/
-app.get("/auth/google/secrets", passport.authenticate('google', { failureRedirect: '/login' }),
-    function(req, res) {
-  // Successful authentication, redirect home.
-    res.redirect('/secrets');
-});
+Sessions user by calling done(null, user) passing user to session middleware for serialization/deserialization.*/
+app.get("/auth/google/secrets", passport.authenticate('google', { failureRedirect: '/login', successRedirect: "/secrets" }));
 
 app.route('/submit')
     .get((req,res) =>  {
@@ -151,3 +140,8 @@ app.get("/logout", (req,res) => {
 
 const PORT =  3000;
 app.listen(PORT, () => console.log('Server is running on port ' + PORT))
+
+
+
+// This command help generate SSL certficates for local enviroment
+// openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout privatekey.key -out certificate.crt

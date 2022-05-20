@@ -53,12 +53,10 @@ passport.use(localStrategy);
 const googleOptions = {
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: "https://localhost:3000/auth/google/secrets",
-        userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo"
+        callbackURL: "http://localhost:3000/auth/google/secrets"
 }
 
 const localGoogleUserVerifyCallback = (accessToken, refreshToken, profile, done) => {
-        console.log(profile,accessToken, refreshToken);
         User.findOrCreate({ googleId: profile.id }, function (err, user) {
                 // The done() pass the user over to the session middleware
                 return done(err, user);
