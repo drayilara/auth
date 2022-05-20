@@ -7,7 +7,9 @@ const userSchema = new mongoose.Schema({
 
     password : String,
 
-    googleId : String
+    googleId : String,
+
+    secret : String
 })
 
 // Plug in the custom mongoose findOrCreate functionality

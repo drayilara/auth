@@ -5,7 +5,7 @@ const isAuth = (req,res,next) => {
         return next();
     }
 
-    res.sendStatus(401);
+    res.redirect("/login");
 }
 
 module.exports = isAuth;

@@ -8,6 +8,7 @@ const passport = require("./passport");
 const isAuth = require("./authMiddleware");
 const bcrypt = require("bcrypt");
 const MongoStore = require("connect-mongo");
+const bodyParser = require("body-parser");
 
 
 // create app
@@ -22,7 +23,7 @@ const User = db.User;
 
 // app-wide middleware
 app.use(express.static(path.join(__dirname, '/public')));
-app.use(express.urlencoded({extended : true}));
+app.use(bodyParser.urlencoded({extended : true}));
 app.use(express.json());
 
 
@@ -41,16 +42,11 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 
-
-
 // view engine
 app.set("view engine", "ejs");
 
 
-
-
 // Routes
-
 app.get('/', (req,res) => {
     res.render("home");
 })
@@ -99,15 +95,27 @@ Sessions user by calling done(null, user) passing user to session middleware for
 app.get("/auth/google/secrets", passport.authenticate('google', { failureRedirect: '/login', successRedirect: "/secrets" }));
 
 app.route('/submit')
-    .get((req,res) =>  {
+    .get(isAuth, (req,res) =>  {
     res.render("submit")
     })  
-    .post((req,res) => {
-        
+    .post(isAuth, (req,res) => {
+        const userId = req.user._id;
+        const secret = req.body.secret;
+
+        User.updateOne({_id: userId}, {$set : {secret: secret}}, function(err, opResult){
+            if(err) console.log(err.message);
+            console.log(opResult)
+
+            res.redirect("/secrets");
+        })
+
     })
 
 app.get('/secrets', isAuth, (req,res) => {
-    res.render("secrets");
+    User.find({}, function(err, secrets){
+        if(err) console.log(err.message);
+        else res.render("secrets", {secrets: secrets})
+    })
 })
 
 app.get('/loginFailure', (req,res) => {
@@ -132,16 +140,6 @@ app.get("/logout", (req,res) => {
 
 
 
-
-
-
-
-
-
 const PORT =  3000;
-app.listen(PORT, () => console.log('Server is running on port ' + PORT))
+app.listen(PORT, () => console.log('Server is running on port ' + PORT));
 
-
-
-// This command help generate SSL certficates for local enviroment
-// openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout privatekey.key -out certificate.crt
